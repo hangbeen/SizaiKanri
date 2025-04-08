@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.zerock.mapper.OrderMapper">
+
+	<!-- 주문서 목록 조회 / 注文書のリストを取得 -->
+	<select id="getOrderList" resultType="org.zerock.domain.OrderVO">
+		SELECT
+		j.Hitsuke_No AS hitsukeNo, <!-- 주문서 번호 / 注文書番号 -->
+		j.Hitsuke_No_refertype AS hitsukeNoRefertype, <!-- 참조 타입 번호 / 参照タイプ番号 -->
+		t.Torihikisakimei AS torihikisakiMei, <!-- 거래처명 / 取引先名 -->
+		a.Tantoushamei AS tantoushaMei, <!-- 담당자명 / 担当者名 -->
+		h.FirstItemName AS hinmokuMei, <!-- 품목명 / 品目名 -->
+		h.OtherCount AS otherHinmokuCount, <!-- 기타 품목 개수 / 他の品目数 -->
+		TO_CHAR(j.NoukiIchija, 'YYYY-MM-DD') AS noukiIchija, <!-- 납기 일자 / 納期日 -->
+		h.JumunKingakuGoukei AS jumunKingakuGoukei, <!-- 주문 금액 총계 / 注文金額合計 -->
+		j.Status AS status <!-- 상태 / 状態 -->
+		FROM
+		Jumunsho j
+		LEFT JOIN
+		Torihikisaki t ON j.TorihikisakiID = t.TorihikisakiID <!-- 거래처 테이블 조인 / 取引先テーブルの結合 -->
+		LEFT JOIN
+		Tantousha a ON j.TantoushaID = a.TantoushaID <!-- 담당자 테이블 조인 / 担当者テーブルの結合 -->
+		LEFT JOIN
+		(
+		SELECT
+		h.Hitsuke_No_refertype,
+		MIN(h.ItemName) AS FirstItemName, <!-- 첫 번째 품목명 / 最初の品目名 -->
+		COUNT(h.ItemName) - 1 AS OtherCount, <!-- 나머지 품목 수 / 他の品目数 -->
+		SUM(h.Suuryou * (h.Tanka + h.Bugase)) AS JumunKingakuGoukei <!-- 주문 금액 합계 / 注文金額の合計 -->
+		FROM
+		Common_Hinmoku h
+		GROUP BY
+		h.Hitsuke_No_refertype
+		) h ON j.Hitsuke_No_refertype = h.Hitsuke_No_refertype
+		ORDER BY
+		j.Hitsuke DESC, <!-- 날짜 내림차순 / 日付の降順 -->
+		j.No DESC <!-- 번호 내림차순 / 番号の降順 -->
+
+	</select>
+
+	<!-- 출고 목록 조회 / 出庫リストを取得 -->
+	<select id="getReleaseList"
+		resultType="org.zerock.domain.OrderVO">
+		SELECT
+		j.Hitsuke_No AS hitsukeNo, <!-- 주문서 번호 / 注文書番号 -->
+		t.Torihikisakimei AS torihikisakiMei, <!-- 거래처명 / 取引先名 -->
+		j.Hitsuke_No_refertype AS hitsukeNoRefertype, <!-- 참조 타입 번호 / 参照タイプ番号 -->
+		h.itemname AS hinmokuMei, <!-- 품목명 / 品目名 -->
+		h.kikaku AS kikaku, <!-- 규격 / 規格 -->
+		h.MIHANBAISUURYOU AS mihanbaisuuryou, <!-- 미판매 수량 / 未販売数量 -->
+		TO_CHAR(j.NoukiIchija, 'YYYY/MM/DD') AS noukiIchija, <!-- 납기 일자 / 納期日 -->
+		h.TEKIYO AS tekiyo <!-- 적용 / 適用 -->
+		FROM
+		jumunsho j
+		LEFT JOIN
+		Common_Hinmoku h ON j.Hitsuke_No_refertype = h.Hitsuke_No_refertype <!-- 품목 테이블 조인 / 品目テーブルの結合 -->
+		LEFT JOIN
+		Torihikisaki t ON j.TORIHIKISAKIID = t.TorihikisakiID <!-- 거래처 테이블 조인 / 取引先テーブルの結合 -->
+		ORDER BY
+		TO_DATE(SUBSTR(j.hitsuke_no, 1, 10), 'YYYY/MM/DD') DESC, <!-- 날짜 내림차순 / 日付の降順 -->
+		TO_NUMBER(SUBSTR(j.hitsuke_no, 12)) DESC <!-- 번호 내림차순 / 番号の降順 -->
+	</select>
+
+	<!-- 재고 출고 업데이트 / 在庫出庫の更新 -->
+	<update id="release">
+		UPDATE Common_Hinmoku
+		SET MIHANBAISUURYOU = MIHANBAISUURYOU - #{release} <!-- 미판매 수량 차감 / 未販売数量の減少 -->
+		WHERE itemName = #{hinmokuMei} <!-- 품목명 조건 / 品目名条件 -->
+		AND Hitsuke_No_refertype = #{hitsukeNoRefertype} <!-- 참조 타입 조건 / 参照タイプ条件 -->
+		AND MIHANBAISUURYOU >= #{release} <!-- 조건 수량 이상 / 条件数量以上 -->
+	</update>
+
+	<!-- 미판매현황 조회 / 未販売状況を取得 -->
+	<select id="unsoldList" resultType="org.zerock.domain.OrderVO">
+		SELECT
+		j.Hitsuke_No AS hitsukeNo, <!-- 주문서 번호 / 注文書番号 -->
+		h.itemname AS hinmokuMei, <!-- 품목명 / 品目名 -->
+		h.SUURYOU AS suuryou, <!-- 수량 / 数量 -->
+		h.kikaku AS kikaku, <!-- 규격 / 規格 -->
+		h.MIHANBAISUURYOU AS mihanbaisuuryou, <!-- 미판매 수량 / 未販売数量 -->
+		h.MIHANBAIKYOUKYUKINGAKU AS mihanbaikyoukyukingaku, <!-- 미판매 공급금액 / 未販売供給金額 -->
+		h.MIHANBAIBUGASE AS mihanbaibugase, <!-- 미판매 부가세 / 未販売付加税 -->
+		t.Torihikisakimei AS torihikisakiMei, <!-- 거래처명 / 取引先名 -->
+		h.TEKIYO AS tekiyo, <!-- 적용 / 適用 -->
+		TO_CHAR(j.NoukiIchija, 'YYYY/MM/DD') AS noukiIchija <!-- 납기 일자 / 納期日 -->
+		FROM
+		jumunsho j
+		LEFT JOIN
+		Common_Hinmoku h ON j.Hitsuke_No_refertype = h.Hitsuke_No_refertype <!-- 품목 테이블 조인 / 品目テーブルの結合 -->
+		LEFT JOIN
+		Torihikisaki t ON j.TORIHIKISAKIID = t.TorihikisakiID <!-- 거래처 테이블 조인 / 取引先テーブルの結合 -->
+		ORDER BY
+		TO_DATE(SUBSTR(j.hitsuke_no, 1, 10), 'YYYY/MM/DD') DESC, <!-- 날짜 내림차순 / 日付の降順 -->
+		TO_NUMBER(SUBSTR(j.hitsuke_no, 12)) DESC <!-- 번호 내림차순 / 番号の降順 -->
+	</select>
+
+	<!-- 주문서 삽입 / 注文書の挿入 -->
+	<insert id="insertJumunsho"
+		parameterType="org.zerock.domain.JumunshoVO" useGeneratedKeys="true"
+		keyProperty="no" keyColumn="No">
+		INSERT INTO Jumunsho (
+		JumunshoID, Hitsuke, No, referencetype, TorihikisakiID, TantoushaID,
+		SoukoID, Zeikomikubun, TsukaID, NoukiIchija, Memo, Status
+		) VALUES (
+		Jumunsho_seq.nextval, <!-- 주문서 ID 자동 증가 / 注文書ID自動増加 -->
+		#{hitsuke}, <!-- 날짜 / 日付 -->
+		(SELECT COALESCE(MAX(No), 0) + 1
+		FROM Jumunsho
+		WHERE Hitsuke = #{hitsuke}), <!-- 해당 날짜의 최대 번호 +1 / 該当日付の最大番号 +1 -->
+		2, <!-- 참조 타입 / 参照タイプ -->
+		#{torihikisakiID}, <!-- 거래처 ID / 取引先ID -->
+		#{tantoushaID}, <!-- 담당자 ID / 担当者ID -->
+		#{soukoID}, <!-- 창고 ID / 倉庫ID -->
+		#{zeikomikubun}, <!-- 세금 포함 여부 / 税込区分 -->
+		#{tsukaID}, <!-- 통화 ID / 通貨ID -->
+		#{noukiIchija}, <!-- 납기일 / 納期日 -->
+		#{memo}, <!-- 메모 / メモ -->
+		'進行中' <!-- 진행 상태 / 進行中 -->
+		)
+	</insert>
+
+	<!-- 품목 삽입 / 品目の挿入 -->
+	<insert id="insertCommonHinmoku"
+		parameterType="org.zerock.domain.CommonHinmokuVO">
+		INSERT INTO Common_Hinmoku (
+		CommonHinmokuID, ReferenceType, HINMOKUID, Hitsuke_No, ItemCode, ItemName, kikaku,
+		Suuryou, Tanka, KyoukyuKingaku, Bugase, Tekiyo, MIHANBAISUURYOU
+		) VALUES (
+		CommonHinmoku_seq.nextval, '2', #{hinmokuID} ,#{hitsukeNo}, #{itemCode}, #{itemName}, #{kikaku},
+		#{suuryou}, #{tanka}, #{kyoukyuKingaku}, #{bugase}, #{tekiyo},
+		#{suuryou} <!-- 미판매 수량 초기값으로 수량 설정 / 未販売数量の初期値として数量を設定 -->
+		)
+	</insert>
+
+	<!-- 상태 목록 조회 / 状態リストを取得 -->
+	<select id="statusList" parameterType="map"
+		resultType="org.zerock.domain.OrderVO">
+		SELECT
+		j.hitsuke_no AS hitsukeNo, <!-- 주문서 번호 / 注文書番号 -->
+		j.Hitsuke_No_refertype,
+		h.itemname AS hinmokuMei, <!-- 품목명 / 品目名 -->
+		h.suuryou AS suuryou, <!-- 수량 / 数量 -->
+		h.tanka AS tanka, <!-- 단가 / 単価 -->
+		h.kyoukyuKingaku AS kyoukyuKingaku, <!-- 공급 금액 / 供給金額 -->
+		t.TORIHIKISAKIMEI as torihikisakiMei, <!-- 거래처명 / 取引先名 -->
+		h.tekiyo AS tekiyo, <!-- 적용 / 適用 -->
+		h.kyoukyuKingaku / 10 AS bugase, <!-- 부가세 / 付加税 -->
+		h.kyoukyuKingaku + h.kyoukyuKingaku / 10 AS goukei, <!-- 총계 / 合計 -->
+		s.soukoMei AS soukoMei <!-- 창고명 / 倉庫名 -->
+		FROM
+		jumunsho j
+		JOIN
+		common_hinmoku h ON j.Hitsuke_No_refertype = h.Hitsuke_No_refertype
+		LEFT JOIN
+		torihikisaki t ON j.TorihikisakiID = t.TorihikisakiID
+		LEFT JOIN
+		tantousha ts ON j.tantoushaID = ts.tantoushaID
+		LEFT JOIN
+		tsuuka tk ON j.tsukaID = tk.tsukaID
+		LEFT JOIN
+		souko s ON j.soukoID = s.soukoID
+		LEFT JOIN
+		project p ON j.projectID = p.projectID
+		WHERE
+		(#{nyuuryokuBiKaishi, jdbcType=DATE} IS NULL OR TO_DATE(SUBSTR(h.hitsuke_no, 1, 10), 'YYYY/MM/DD') &gt;= #{nyuuryokuBiKaishi,
+		jdbcType=DATE}) <!-- 입력 시작일 조건 / 入力開始日条件 -->
+		AND (#{nyuuryokuBiShuuryou, jdbcType=DATE} IS NULL OR TO_DATE(SUBSTR(h.hitsuke_no, 1, 10), 'YYYY/MM/DD') &lt;=
+		#{nyuuryokuBiShuuryou, jdbcType=DATE}) <!-- 입력 종료일 조건 / 入力終了日条件 -->
+		AND (#{tsukaID, jdbcType=INTEGER} IS NULL OR j.tsukaID = #{tsukaID,
+		jdbcType=INTEGER}) <!-- 통화 조건 / 通貨条件 -->
+		AND (#{soukoID, jdbcType=INTEGER} IS NULL OR j.soukoID = #{soukoID,
+		jdbcType=INTEGER}) <!-- 창고 조건 / 倉庫条件 -->
+		AND (#{projectID, jdbcType=INTEGER} IS NULL OR j.projectID = #{projectID,
+		jdbcType=INTEGER}) <!-- 프로젝트 조건 / プロジェクト条件 -->
+		AND (#{torihikisakiID, jdbcType=INTEGER} IS NULL OR j.torihikisakiID =
+		#{torihikisakiID, jdbcType=INTEGER}) <!-- 거래처 조건 / 取引先条件 -->
+		AND (#{hinmokuMei, jdbcType=VARCHAR} IS NULL OR h.itemName =
+		#{hinmokuMei, jdbcType=VARCHAR}) <!-- 품목명 조건 / 品目名条件 -->
+		AND (#{tantoushaID, jdbcType=INTEGER} IS NULL OR j.tantoushaID =
+		#{tantoushaID, jdbcType=INTEGER}) <!-- 담당자 조건 / 担当者条件 -->
+		AND (#{zeikomikubun, jdbcType=VARCHAR} IS NULL OR j.ZEIKOMIKUBUN =
+		#{zeikomikubun, jdbcType=VARCHAR}) <!-- 세금 포함 여부 조건 / 税込区分条件 -->
+		AND (#{noukiichija_kaishi, jdbcType=DATE} IS NULL OR j.NOUKIICHIJA &gt;=
+		#{noukiichija_kaishi, jdbcType=DATE}) <!-- 납기 시작일 조건 / 納期開始日条件 -->
+		AND (#{noukiichija_shuuryou, jdbcType=DATE} IS NULL OR j.NOUKIICHIJA
+		&lt;= #{noukiichija_shuuryou, jdbcType=DATE}) <!-- 납기 종료일 조건 / 納期終了日条件 -->
+		ORDER BY
+		TO_DATE(SUBSTR(j.hitsuke_no, 1, 10), 'YYYY/MM/DD') DESC, <!-- 날짜 내림차순 / 日付の降順 -->
+		TO_NUMBER(SUBSTR(j.hitsuke_no, 12)) DESC <!-- 번호 내림차순 / 番号の降順 -->
+	</select>
+
+	<!-- 품목 목록 조회 / 品目リストを取得 -->
+	<select id="getHinmokuList"
+		resultType="org.zerock.domain.HinmokuVO">
+		SELECT
+		HinmokuID, <!-- 품목 ID / 品目ID -->
+		ZaikoKoodo, <!-- 재고 코드 / 在庫コード -->
+		Hinmokumei, <!-- 품목명 / 品目名 -->
+		Kikaku, <!-- 규격 / 規格 -->
+		Tanka, <!-- 단가 / 単価 -->
+		KyoukyuuGaku, <!-- 공급 금액 / 供給額 -->
+		Shouhizei <!-- 소비세 / 消費税 -->
+		FROM Hinmoku <!-- 품목 테이블 / 品目テーブル -->
+	</select>
+
+</mapper>
