@@ -1,3 +1,9 @@
+言語：Java
+Framework: Spring
+ツール：STS
+DB: Oracle
+形態：Local
+
 メーン·ページ
 ->springProject2/src/main/webapp/WEB-INF/views
 またはプロジェクト自体を実行
