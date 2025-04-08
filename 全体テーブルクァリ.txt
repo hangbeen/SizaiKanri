@@ -1,0 +1,516 @@
+-- 견적서 관련
+CREATE SEQUENCE Mitsumorisho_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE MitsumorishoRireki_seq START WITH 1 INCREMENT BY 1;
+
+-- 주문서 관련
+CREATE SEQUENCE Jumunsho_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE JumunshoRireki_seq START WITH 1 INCREMENT BY 1;
+
+-- 판매 관련
+CREATE SEQUENCE Hanbai_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Shoyou_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE ShoyouHinmoku_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Horyuu_seq START WITH 1 INCREMENT BY 1;
+
+-- 결제 관련
+CREATE SEQUENCE Kessai_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE HanbaiRireki_seq START WITH 1 INCREMENT BY 1;
+
+-- 출하지시서 관련
+CREATE SEQUENCE ShukkaShiziShoukai_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE ShukkaShiziRireki_seq START WITH 1 INCREMENT BY 1;
+
+-- 출하 관련
+CREATE SEQUENCE ShukkaZyouhou_seq START WITH 1 INCREMENT BY 1;
+
+-- 공통 관련
+CREATE SEQUENCE CommonHinmoku_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Hinmoku_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE MyHinmoku_seq START WITH 1 INCREMENT BY 1;
+
+-- 기타 테이블 관련
+CREATE SEQUENCE Torihikisaki_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Tantousha_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Seikyuu_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Souko_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Purojekuto_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Tsuuka_seq START WITH 1 INCREMENT BY 1;
+
+-- 기타 데이터 관리 테이블 관련
+CREATE SEQUENCE Sanshoudeeta_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Keijiban_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE ShishutsuKetsugisho_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SagyouShijisho_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE NyuryokuMenuKensaku_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE FairuAppuroudo_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE TorihikisakiManager_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Shiyousha_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE CommonDetailedHistory_seq START WITH 1 INCREMENT BY 1;
+
+
+---------------------------------견적서---------------------------------
+-- 1. 견적서 테이블 (Mitsumorisho)
+-- 견적서 기본 정보를 저장하는 테이블
+CREATE TABLE Mitsumorisho (
+    MitsumorishoID NUMBER PRIMARY KEY, -- 단일 대체 키
+    Hitsuke DATE NOT NULL, -- 일자
+    No NUMBER NOT NULL, -- 견적서 번호
+    Hitsuke_No VARCHAR2(50) UNIQUE, -- 일자와 견적서 번호 결합 (고유 식별자)
+    TorihikisakiID NUMBER NOT NULL, -- 거래처 ID
+    TantoushaID NUMBER REFERENCES Tantousha(TantoushaID), -- 담당자 ID
+    SoukoID NUMBER REFERENCES Souko(SoukoID), -- 창고 ID
+    ProjectID NUMBER REFERENCES Project(ProjectID), -- 프로젝트 ID
+    GokeiKingaku NUMBER NOT NULL, -- 총 금액
+    Status VARCHAR2(20) NOT NULL, -- 진행 상태
+    NaiGai VARCHAR2(10) NOT NULL, -- 내자/외자 구분
+    Zeikomikubun VARCHAR2(1) CHECK (Zeikomikubun IN ('Y', 'N')), -- 부가세 포함 여부
+    Memo VARCHAR2(255), -- 비고
+    Sakuseisha VARCHAR2(50), -- 생성자
+    Sakuseibi DATE DEFAULT SYSDATE -- 생성일
+);
+
+
+-- 2. 견적서이력 테이블 
+CREATE TABLE MitsumorishoRireki(
+MitsumorishoRirekiID NUMBER NOT NULL PRIMARY KEY, -- 견적서이력조회ID
+ShukkaID NUMBER, -- FK 출하ID 出荷ID
+SagyouBi DATE, --작업일자 作業日
+DenpyouBangou VARCHAR2(100), --전표번호 伝票番号
+Koui VARCHAR2(100), --행위 行為
+TorihikisakiID NUMBER, -- 거래처ID
+TorihikisakiCode VARCHAR2(100), --거래처코드 取引先コード
+Torihikisaki VARCHAR2(100), --거래처 取引先
+HinmokuMei VARCHAR2(100), --품목명 品目名
+TantoushaCode VARCHAR2(100), --담당자코드 担当者コード
+TantoushaMei VARCHAR2(100), --담당자명 担当者名
+Sagyousha VARCHAR2(100), --작업자 作業者
+DenpyouZyoutai CHAR(1), --전표상태 伝票状態	-> 확인 or 미확인
+Rireki CHAR(1) --이력 履歴
+);
+
+
+---------------------------------주문서---------------------------------
+-- 3. 주문서 테이블 (Order Table)
+CREATE TABLE Jumunsho (
+    JumunshoID NUMBER PRIMARY KEY not null, -- 단일 대체 키
+    Hitsuke DATE,  -- 일자
+    No NUMBER,  -- 주문서 번호
+    Hitsuke_No VARCHAR2(50) UNIQUE,  -- 일자와 주문서 번호 결합 (고유 식별자)
+    TorihikisakiID NUMBER,  -- 거래처 ID (참조: 거래처 테이블)
+    TantoushaID NUMBER,  -- 담당자 ID (참조: 담당자 테이블)
+    SoukoID NUMBER,  -- 창고 ID (참조: 창고 테이블)
+    ProjectID NUMBER,  -- 프로젝트 ID (참조: 프로젝트 테이블)
+    TsukaID NUMBER,  -- 통화 ID (참조: 통화 테이블)
+    Status VARCHAR2(20) NOT NULL,  -- 진행 상태 (예: 진행중, 확인, 완료)
+    NaiGai VARCHAR2(10) ,  -- 내자/외자 구분
+    Zeikomikubun VARCHAR2(1) CHECK (Zeikomikubun IN ('Y', 'N')),  -- 부가세 포함 여부
+    Memo VARCHAR2(255),  -- 비고
+    Sakuseisha VARCHAR2(50),  -- 생성자
+    Sakuseibi DATE DEFAULT SYSDATE,  -- 생성일
+    JumunKingakuGoukei NUMBER,  -- 주문 금액 합계
+    NoukiIchija DATE,  -- 납기일자
+    MihampaSuuryou NUMBER,  -- 미판매 수량
+    MihampaKyoukyuKingaku NUMBER,  -- 미판매 공급가액
+    MihampaBugase NUMBER,  -- 미판매 부가세,
+);
+
+-- 4. 주문서이력 테이블 
+CREATE TABLE JumunshoRireki(
+JumunshoRirekiID NUMBER NOT NULL PRIMARY KEY, -- 견적서이력조회ID
+ShukkaID NUMBER, -- FK 출하ID 出荷ID
+SagyouBi DATE, --작업일자 作業日
+DenpyouBangou VARCHAR2(100), --전표번호 伝票番号
+Koui VARCHAR2(100), --행위 行為
+TorihikisakiID NUMBER, -- 거래처ID
+TorihikisakiCode VARCHAR2(100), --거래처코드 取引先コード
+Torihikisaki VARCHAR2(100), --거래처 取引先
+HinmokuMei VARCHAR2(100), --품목명 品目名
+TantoushaCode VARCHAR2(100), --담당자코드 担当者コード
+TantoushaMei VARCHAR2(100), --담당자명 担当者名
+Sagyousha VARCHAR2(100), --작업자 作業者
+DenpyouZyoutai CHAR(1), --전표상태 伝票状態	-> 확인 or 미확인
+Rireki CHAR(1) --이력 履歴
+);
+
+
+---------------------------------판매---------------------------------
+-- 5. 판매 販売
+CREATE TABLE Hanbai (	--　
+    HanbaiID NUMBER PRIMARY KEY,	-- 販売ID 판매ID
+    Hitsuke DATE,  -- 일자
+    No NUMBER,  -- 주문서 번호
+    Hitsuke_No VARCHAR2(50) UNIQUE,  -- 일자와 주문서 번호 결합 (고유 식별자)
+    ReferenceType VARCHAR2(50),  -- 참조 유형 (예: 견적서, 주문서, 판매, 출하지시서, 출하)    
+    TorihikisakiID NUMBER,  -- 거래처 ID	GyoshaID -> TorihikisakiID		取引先ID
+    HinmokuID NUMBER,  -- 품목 ID	品目ID
+    DenpyoID NUMBER,  -- 전표 ID　伝票ID
+    ShukkaSoukoID NUMBER,  -- 출하창고 ID　ShukkaSokoID -> ShukkaSoukoID 出荷倉庫
+    TsukaID NUMBER,  -- 통화 ID		Tsuka -> Tsuuka		通貨
+    ProjectID NUMBER,  -- 프로젝트 ID	PurojekutoID -> ProjectID
+    TantoushaID NUMBER,  -- 담당자 ID	担当者ID
+    ChuumonshoID NUMBER,  -- 주문서 ID	注文書ID
+    HanbaiBikou VARCHAR2(1000)  -- Hanbai Bikou (새로운 항목 추가)	판매비고 販売備考
+--만약 판매비고가 아니라 새로운 항목 추가로 하고 싶으시면 ShinKoumokuTsuika　新項目追加 신항목 추가
+);
+
+-- 6. 소요 所要
+CREATE TABLE Shoyou (
+    ShoyouID NUMBER PRIMARY KEY,  -- 소요 ID
+    Hitsuke DATE,  -- 일자		
+    SoukoID NUMBER,  -- 창고		
+    BOMKubun VARCHAR2(50),  
+    Kubun VARCHAR2(50),  -- 구분	区分
+    DaihyouHinmokuKizyunKansan VARCHAR2(100)  -- 대표품목기준환산
+);
+
+-- 7. 소요 품목 所要品目
+CREATE TABLE ShoyouHinmoku (
+    ShoyouHinmokuID NUMBER PRIMARY KEY not null, -- 단일 대체 키
+    HinmokuCode VARCHAR2(50),  -- 품목코드
+    HinmokuMei VARCHAR2(100),  -- 품목명
+    Kikaku VARCHAR2(100),  -- 규격 (規格)
+    BOMVersion VARCHAR2(50),  -- BOM 버전
+    Suuryou NUMBER  -- 수량 (数量)
+);
+
+
+-- 8. 보류	保留
+CREATE TABLE Horyuu (
+    HoryuuID NUMBER PRIMARY KEY not null, -- 단일 대체 키
+    HoryuuBangou NUMBER UNIQUE, -- 보류번호 (保留番号)
+    TorihikisakiID NUMBER, -- 거래처 (取引先ID)
+    HinmokuID NUMBER, -- 품목 (品目ID)
+    Kingaku NUMBER, -- 금액 (金額)
+    Ruikei VARCHAR2(50), -- 유형 (類型)
+    SokoID NUMBER -- 창고 (倉庫ID)
+);
+
+
+-- 9. 결제	決済
+CREATE TABLE Kessai (
+    KessaiID NUMBER PRIMARY KEY,  -- 결제 ID	決済ID
+    KessaiYouseishaID NUMBER,  -- 결제 요청자 ID	
+    KessaiYouseiBi DATE,  -- 결제 요청일		
+    TorihikisakiID NUMBER,  -- 거래처		
+    HinmokuID NUMBER,  -- 품목		
+    KessaiKingaku NUMBER,  -- 결제 금액		
+    KessaiHouhou VARCHAR2(50),  -- 결제 방법	
+    KessaiZyoutai VARCHAR2(50),  -- 결제 상태	
+    ShouninBangou VARCHAR2(50),  -- 승인번호	
+    ZaikoDenpyo VARCHAR2(50),  -- 재고 전표	
+    JyotaiBetsuShoriKinou VARCHAR2(100),  -- 상태별 처리 기능
+    KaikeiDenpyo VARCHAR2(50),  -- 회계 전표	
+    Uchiwake VARCHAR2(500)  -- 내역
+);
+
+-- 10.주문서이력 테이블 
+CREATE TABLE HanbaiRireki(
+HanbaiRirekiID NUMBER NOT NULL PRIMARY KEY, -- 견적서이력조회ID
+ShukkaID NUMBER, -- FK 출하ID 出荷ID
+SagyouBi DATE, --작업일자 作業日
+DenpyouBangou VARCHAR2(100), --전표번호 伝票番号
+Koui VARCHAR2(100), --행위 行為
+TorihikisakiID NUMBER, -- 거래처ID
+TorihikisakiCode VARCHAR2(100), --거래처코드 取引先コード
+Torihikisaki VARCHAR2(100), --거래처 取引先
+HinmokuMei VARCHAR2(100), --품목명 品目名
+TantoushaCode VARCHAR2(100), --담당자코드 担当者コード
+TantoushaMei VARCHAR2(100), --담당자명 担当者名
+Sagyousha VARCHAR2(100), --작업자 作業者
+DenpyouZyoutai CHAR(1), --전표상태 伝票状態	-> 확인 or 미확인
+Rireki CHAR(1) --이력 履歴
+);
+
+---------------------------------출하지시서---------------------------------
+-- 11.출하지시서(Shukka_Sijisho) -- 出荷指示照会
+CREATE TABLE ShukkaShiziShoukai ( -- 出荷指示照会
+ShukkaShiziShoukaiID NUMBER NOT NULL PRIMARY KEY,
+Hitsuke DATE(50),  -- 일자
+No NUMBER,  -- 주문서 번호
+Hitsuke_No VARCHAR2(50) UNIQUE,  -- 일자와 주문서 번호 결합 (고유 식별자)
+TorihikisakiID NUMBER, --거래처ID 取引先
+TantoushaID NUMBER,  --담당자ID
+SoukoID VARCHAR2(100), -- 창고명倉庫名 
+PurojekutoID NUMBER, --프로젝트ID プロジェクトID
+Renrakusaki VARCHAR2(100), --연락처 連絡先
+HinmokuID NUMBER(100), --품목ID品目ID
+SuuryouGoukei number, --/suryo_gokei –수량합계数量合計
+ShinkouZyoutai VARCHAR2(100), --/Shinko_jokyo –진행상태進行状態
+Kubun VARCHAR2(100), --구분 区分 (라인별, 집계조건 구분)
+ShukkaYoteibi Date, --출하예정일 出荷予定日
+YuubinBangou VARCHAR2(100), --우편번호
+TekiyouYoushiki VARCHAR2(100) --적용양식 適用様式
+);
+
+-- 12. 출하이력 테이블 出荷履歴
+CREATE TABLE ShukkaSijishoRireki(
+ShukkaShiziRirekiID NUMBER NOT NULL PRIMARY KEY, -- 출하이력조회ID 出荷履歴照会ID
+ShukkaID NUMBER, -- FK 출하ID 出荷ID
+SagyouBi DATE, --작업일자 作業日
+DenpyouBangou VARCHAR2(100), --전표번호 伝票番号
+Koui VARCHAR2(100), --행위 行為
+TorihikisakiID NUMBER, -- 거래처ID
+TorihikisakiCode VARCHAR2(100), --거래처코드 取引先コード
+Torihikisaki VARCHAR2(100), --거래처 取引先
+HinmokuID VARCHAR2(100), --품목명 品目名
+TantoushaCode VARCHAR2(100), --담당자코드 担当者コード
+TantoushaMei VARCHAR2(100), --담당자명 担当者名
+Sagyousha VARCHAR2(100), --작업자 作業者
+DenpyouZyoutai CHAR(1), --전표상태 伝票状態	-> 확인 or 미확인
+Rireki CHAR(1) --이력 履歴
+);
+
+---------------------------------출하---------------------------------
+-- 13. 출하 정보 테이블 (ShukkaZyouhou)
+CREATE TABLE ShukkaZyouhou (
+ShukkaID NUMBER NOT NULL PRIMARY KEY, --출하ID 기본키
+Hitsuke DATE, --일자
+No NUMBER, --출하 번호
+Hitsuke_No VARCHAR2(50) UNIQUE, -- 일자와 출하 번호 결합 (고유식별자)
+ -- 출하지시서ID (참조 : 출하지시서 테이블)
+TorihikisakiID NUMBER, --거래처ID (참조 : 거래처 테이블)
+TantoushaID NUMBER, --담당자ID (참조 : 담당자 테이블)
+SoukoID NUMBER NOT NULL, --창고ID (참조 : Souko 테이블)
+ProjectID NUMBER, --프로젝트ID (참조: Project 테이블)
+ShinKoumokuTsuika VARCHAR2(100) -- 새로운 항목 추가
+);
+
+-- 14.출하이력 테이블 出荷履歴
+CREATE TABLE ShukkaShiziRireki(
+ShukkaShiziRirekiID NUMBER NOT NULL PRIMARY KEY, -- 출하이력조회ID 出荷履歴照会ID
+ShukkaID NUMBER, -- FK 출하ID 出荷ID
+SagyouBi DATE, --작업일자 作業日
+DenpyouBangou VARCHAR2(100), --전표번호 伝票番号
+Koui VARCHAR2(100), --행위 行為
+TorihikisakiID NUMBER, -- 거래처ID
+TorihikisakiCode VARCHAR2(100), --거래처코드 取引先コード
+Torihikisaki VARCHAR2(100), --거래처 取引先
+HinmokuMei VARCHAR2(100), --품목명 品目名
+TantoushaCode VARCHAR2(100), --담당자코드 担当者コード
+TantoushaMei VARCHAR2(100), --담당자명 担当者名
+Sagyousha VARCHAR2(100), --작업자 作業者
+DenpyouZyoutai CHAR(1), --전표상태 伝票状態	-> 확인 or 미확인
+Rireki CHAR(1) --이력 履歴
+);
+
+---------------------------------공통---------------------------------
+-- 15. 공통 품목 테이블 (Common_Hinmoku)
+CREATE TABLE Common_Hinmoku (
+    CommonHinmokuID NUMBER PRIMARY KEY, -- 기본 키 (시퀀스를 사용하여 값 생성)
+    HinmokuID NUMBER,  -- 재고테이블 기본키
+    Hitsuke_No VARCHAR2(50),  -- 일자와 주문서 번호 결합 (참조용)
+    MitsumorishoID NUMBER, -- 견적서 ID (참조: Mitsumorisho 테이블)
+    JumunshoID NUMBER, -- 주문서 ID (참조: Jumunsho 테이블)
+    HanbaiID NUMBER, -- 판매 ID (참조: Hanbai 테이블)
+    ShukkaShiziShoukaiID NUMBER, -- 출하지시서 ID (참조: ShukkaShiziShoukai 테이블)
+    ShukkaID NUMBER, -- 출하 ID (참조: ShukkaZyouhou 테이블)
+    ReferenceType VARCHAR2(50),  -- 참조 유형 (예: 견적서, 주문서, 판매, 출하지시서, 출하)
+    ItemCode VARCHAR2(50), -- 품목코드
+    ItemName VARCHAR2(100), -- 품목명
+    kikaku VARCHAR2(200), -- 규격 
+    Suuryou NUMBER,  -- 수량
+    Tanka NUMBER,  -- 단가
+    GaikaKingaku NUMBER,  -- 외화 금액
+    GenkaKingaku NUMBER,  -- 원화 금액
+    Tekiyo VARCHAR2(200),  -- 적요
+    KyoukyuKingaku NUMBER,  -- 공급 가액
+    Bugase NUMBER,  -- 부가세
+    tekiyo VARCHAR2(500), -- 비고 (tekiyo)
+    NoukiIchija DATE,  -- 납기일자
+    FOREIGN KEY (HinmokuID) REFERENCES Hinmoku(HinmokuID),
+    FOREIGN KEY (MitsumorishoID) REFERENCES Mitsumorisho(MitsumorishoID),
+    FOREIGN KEY (JumunshoID) REFERENCES Jumunsho(JumunshoID),
+    FOREIGN KEY (HanbaiID) REFERENCES Hanbai(HanbaiID),
+    FOREIGN KEY (ShukkaShiziShoukaiID) REFERENCES ShukkaShiziShoukai(ShukkaShiziShoukaiID),
+    FOREIGN KEY (ShukkaID) REFERENCES ShukkaZyouhou(ShukkaID)
+);
+
+-- 16. 재고 테이블 (Hinmoku)
+CREATE TABLE Hinmoku (
+    HinmokuID NUMBER PRIMARY KEY, -- 품목 ID (PK)
+    ZaikoKoodo VARCHAR2(50) NOT NULL, -- 재고 코드
+    Hinmokumei VARCHAR2(100) NOT NULL, -- 품목명
+    Kikaku VARCHAR2(200), -- 규격
+    Zentaishuuryou NUMBER NOT NULL, -- 전체수량
+    Soukosuuryou NUMBER NOT NULL, -- 창고수량
+    Suuryou NUMBER NOT NULL, -- 수량
+    Tanka NUMBER NOT NULL, -- 단가
+    KyuukyuuGaku NUMBER NOT NULL, -- 공급가액
+    Shouhizei NUMBER DEFAULT 0, -- 부가세
+    BikouID NUMBER -- 새로운 항목 추가
+);
+
+-- 17. My 품목 테이블 (My Item Table)
+CREATE TABLE MyHinmokuTable (
+    MyHinmokuID NUMBER PRIMARY KEY, -- 기본 키 (자동 증가 값)
+    HinmokuCode VARCHAR2(50),  -- 품목 코드(참조용)
+    ShouhinMei VARCHAR2(100),  -- 품목명
+    Tanka NUMBER DEFAULT 0,  -- 단가
+    GaikaKingaku NUMBER DEFAULT 0,  -- 외화금액
+    GenkaKingaku NUMBER DEFAULT 0  -- 원화금액
+);
+
+
+-- 18. 거래처 테이블 (Torihikisaki)
+-- 거래처 정보를 저장
+CREATE TABLE Torihikisaki (
+    TorihikisakiID NUMBER PRIMARY KEY, -- 거래처 ID
+    TorihikisakiGroup1 VARCHAR2(50), -- 거래처그룹1
+    TorihikisakiGroup2 VARCHAR2(50), -- 거래처그룹2
+    TorihikisakiKaiso VARCHAR2(50), -- 거래처계층그룹
+    Torihikisakimei VARCHAR2(100) NOT NULL, -- 거래처명
+    Renrakusaki VARCHAR2(15) -- 연락처
+);
+
+-- 19. 담당자 테이블 (Tantousha)
+-- 담당자 정보를 관리
+CREATE TABLE Tantousha (
+    TantoushaID NUMBER PRIMARY KEY, -- 담당자 ID
+    Tantoushamei VARCHAR2(100) NOT NULL, -- 담당자명
+    Busho VARCHAR2(100) -- 부서명
+);
+
+
+-- 20. 생성한 전표 테이블 (Seikyuu)
+-- 생성한 전표 정보를 저장
+CREATE TABLE Seikyuu (
+    SeikyuuID NUMBER PRIMARY KEY, -- 전표 ID
+    MitsumorishoID NUMBER REFERENCES Mitsumorisho(MitsumorishoID), -- 견적서 ID (외래 키)
+    JumunshoID NUMBER REFERENCES Jumunsho(JumunshoID), -- 주문서 ID (외래 키)
+    HanbaiID NUMBER REFERENCES Hanbai(HanbaiID), -- 판매 ID (외래 키)
+    ShukkaShiziShoukaiID NUMBER REFERENCES ShukkaShiziShoukai(ShukkaShiziShoukaiID), -- 출하지시서 ID (외래 키)
+    ShukkaID NUMBER REFERENCES ShukkaZyouhou(ShukkaID), -- 출하 ID (외래 키)
+    SeikyuuBi DATE NOT NULL, -- 전표 생성 날짜
+    Sakuseisha VARCHAR2(50), -- 생성자
+    GokeiGaku NUMBER NOT NULL -- 총 금액
+);
+
+-- 21. 창고 테이블 (Souko)
+-- 창고 정보를 저장
+CREATE TABLE Souko (
+    SoukoID NUMBER PRIMARY KEY, -- 창고 ID
+    SoukoKaiso VARCHAR2(50), -- 창고계층그룹
+    Soukomei VARCHAR2(100) NOT NULL, -- 창고명
+    SoukoShozai VARCHAR2(200) -- 창고 위치
+);
+
+-- 22. 프로젝트 테이블 (Project)
+-- 프로젝트 정보를 저장
+CREATE TABLE Project (
+    ProjectID NUMBER PRIMARY KEY, -- 프로젝트 ID (PK)
+    ProjectCode VARCHAR2(50) UNIQUE NOT NULL, -- 프로젝트 코드
+    ProjectGroup1 VARCHAR2(50), -- 프로젝트그룹1
+    ProjectGroup2 VARCHAR2(50), -- 프로젝트그룹2
+    ProjectMeimei VARCHAR2(100) NOT NULL, -- 프로젝트명
+    KaishiBi DATE, -- 프로젝트 시작일
+    ShuuryouBi DATE, -- 프로젝트 종료일
+    ClientID NUMBER -- 클라이언트 ID (참조: Torihikisaki 테이블)
+);
+-- 23. 통화 테이블 (Tsuuka)
+-- 통화 정보를 저장
+CREATE TABLE Tsuuka (
+    TsukaID VARCHAR2(3) PRIMARY KEY, -- 통화 코드 (예: KRW, USD)
+    TsuukaMeimei VARCHAR2(50) -- 통화명
+);
+
+---------------------------------------------------------------------
+--일단 만드는 테이블
+
+-- 24. 참조 데이터 테이블 (Sanshoudeeta)
+-- 참조 데이터를 저장
+CREATE TABLE Sanshoudeeta (
+    SanshouID NUMBER PRIMARY KEY, -- 참조 ID (PK)
+    Sanshoumei VARCHAR2(100) NOT NULL, -- 참조명
+    Sakuseibi DATE DEFAULT SYSDATE, -- 작성일
+    Sanshoutaipu VARCHAR2(50) -- 참조 유형 (예: 전표, 기타)
+);
+
+-- 25. 게시판 테이블 (Keijiban)
+-- 게시판 데이터를 관리
+CREATE TABLE Keijiban (
+    KeijibanID NUMBER PRIMARY KEY, -- 게시판 ID (PK)
+    Category VARCHAR2(100), -- 카테고리
+    Taitoru VARCHAR2(255) NOT NULL, -- 제목
+    Taipu VARCHAR2(50) NOT NULL -- 유형 (예: 신규, 참조)
+);
+
+-- 26. 지출 결의서 테이블
+CREATE TABLE ShishutsuKetsugisho (
+    ShishutsuKetsugishoID NUMBER PRIMARY KEY, -- 기본 키
+    KetsugiBi DATE NOT NULL, -- 일자
+    KetsugiNaiyou VARCHAR2(255), -- 첨언 내용
+    TenpuPasu VARCHAR2(255), -- 첨부 파일 경로
+    KanjouCode VARCHAR2(50), -- 계정코드(차변)
+    KanjouMei VARCHAR2(50), -- 계정명
+    TorihikisakiKensaku VARCHAR2(50), -- 거래처 검색
+    TorihikisakiMei VARCHAR2(50), -- 거래처명
+    Kingaku NUMBER(15, 2), -- 금액
+    TekiyouMei VARCHAR2(255), -- 적요명
+    TsuikaJouhou CLOB -- 추가 정보
+);
+
+-- 27. 작업 지시서 테이블
+CREATE TABLE SagyouShijisho (
+    SagyouShijishoID NUMBER PRIMARY KEY, -- 기본 키
+    SagyouBi DATE NOT NULL, -- 작업일자
+    PurojekutoMei VARCHAR2(100), -- 프로젝트명
+    Noukibi DATE, -- 납기일자
+    Nouhinsaki VARCHAR2(50), -- 납품처
+    Tantousha VARCHAR2(50), -- 담당자
+    SeisanHinmokuCode VARCHAR2(50), -- 품목코드
+    SeisanHinmokuMei VARCHAR2(100), -- 품목명
+    Kikaku VARCHAR2(100), -- 규격
+    Suuryou NUMBER, -- 수량
+    SeisanKoujou VARCHAR2(100), -- 생산공장
+    TsuikaKomoku CLOB -- 새로운 항목 추가
+);
+
+-- 28. 입력 메뉴 검색 테이블
+CREATE TABLE NyuryokuMenuKensaku (
+    KensakuID NUMBER PRIMARY KEY, -- 기본 키
+    MenuMei VARCHAR2(100) NOT NULL, -- 메뉴 이름
+    Shinki NUMBER(1) DEFAULT 0 NOT NULL, -- 신규 여부 (BOOLEAN 대체)
+    Sanshou NUMBER(1) DEFAULT 0 NOT NULL -- 참조 여부 (BOOLEAN 대체)
+);
+
+-- 29. 파일 업로드 테이블
+CREATE TABLE FairuAppuroudo (
+    AppuroudoID NUMBER PRIMARY KEY, -- 기본 키
+    FairuMei VARCHAR2(255) NOT NULL, -- 파일 이름
+    FairuPasu VARCHAR2(255) NOT NULL, -- 파일 저장 경로
+    AppuroudoBi TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 업로드 일시
+);
+
+-- 30. 거래처 관리 담당자 테이블 (TorihikisakiManager)
+-- 거래처 관리 담당자 정보를 저장
+CREATE TABLE TorihikisakiManager (
+    ManagerID NUMBER PRIMARY KEY, -- 관리 담당자 ID
+    TorihikisakiID NUMBER NOT NULL, -- 거래처 ID (참조: Torihikisaki 테이블)
+    TantoushaID NUMBER NOT NULL, -- 담당자 ID (참조: Tantousha 테이블)
+    CreatedDate DATE DEFAULT SYSDATE, -- 생성일
+    Description VARCHAR2(255) -- 비고
+);
+
+-- 31. 사용자 테이블 (Shiyousha)
+-- 사용자 정보를 저장
+CREATE TABLE Shiyousha (
+    ShiyoushaID NUMBER PRIMARY KEY, -- 사용자 ID
+    ShiyoushaMei VARCHAR2(100) NOT NULL, -- 사용자 이름
+    Yakuwari VARCHAR2(50), -- 역할 (예: 관리자, 일반 사용자)
+    Meeru VARCHAR2(100), -- 이메일
+    Sakuseibi DATE DEFAULT SYSDATE -- 생성일
+);
+
+-- 32. 공통 상세 이력 테이블 (Common Detailed History Table)
+CREATE TABLE CommonDetailedHistory (
+HistoryID NUMBER PRIMARY KEY,  -- 이력 ID (PK)
+ReferenceType VARCHAR2(50),  -- 전표 유형 (예: 견적서, 주문서, 판매, 출하지시서, 출하)
+Hitsuke_No VARCHAR2(50),  -- 일자와 전표 번호 결합 (참조용)
+SagyoshaID VARCHAR2(50),  -- 작업자 ID
+SagyoNichiji TIMESTAMP,  -- 작업 일시
+DenpyoStatus VARCHAR2(50),  -- 전표 상태 (예: 확인, 미확인)
+ProgressStatus VARCHAR2(50),  -- 진행 상태 (예: 완료, 진행중)
+State VARCHAR2(50)  -- 상태 (예: 수정, 상태변경, 삭제)
+);
+
+
