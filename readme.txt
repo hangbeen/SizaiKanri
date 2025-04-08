@@ -1,6 +1,8 @@
 言語：Java
 Framework: Spring
 ツール：STS
+FE: JSP
+BE: Servlet
 DB: Oracle
 形態：Local
 
